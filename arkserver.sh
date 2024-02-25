@@ -161,7 +161,7 @@ if [ "${am_arkAutoUpdateOnStart}" = true ]; then
         wait $arkmanpid
 	fi
 else
-	arkmanager start -noautoupdate --no-background --verbose &
+	arkmanager start --noautoupdate --no-background --verbose &
 	arkmanpid=$!
 	wait $arkmanpid
 fi
