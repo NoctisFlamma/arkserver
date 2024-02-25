@@ -98,7 +98,7 @@ fi
 [ -f /ark/config/Game.ini ] && ln -sf /ark/config/Game.ini /ark/server/ShooterGame/Saved/Config/LinuxServer/Game.ini
 [ -f /ark/config/GameUserSettings.ini ] && ln -sf /ark/config/GameUserSettings.ini /ark/server/ShooterGame/Saved/Config/LinuxServer/GameUserSettings.ini
 
-if [[ "$VALIDATE_SAVE_EXISTS" = true && ! -z "$am_ark_AltSaveDirectoryName" && ! -z "$am_serverMap" ]]; then
+if [[ "${VALIDATE_SAVE_EXISTS}" = true && ! -z "${am_ark_AltSaveDirectoryName}" && ! -z "${am_serverMap}" ]]; then
 	savepath="/ark/server/ShooterGame/Saved/$am_ark_AltSaveDirectoryName"
 	savefile="$am_serverMap.ark"
 	echo "Validating that a save file exists for $am_serverMap"
@@ -118,7 +118,7 @@ else
 	echo "Save file validation is not enabled."
 fi
 
-if [ ${BACKUPONSTART} -eq 1 ] && [ "$(ls -A server/ShooterGame/Saved/SavedArks/)" ]; then 
+if [ "${BACKUPONSTART}" = true ] && [ "$(ls -A server/ShooterGame/Saved/SavedArks/)" ]; then 
     echo "[Backup on Start]"
     arkmanager backup
 else
@@ -126,11 +126,11 @@ else
 fi
 
 function stop {
-	if [ ${BACKUPONSTOP} -eq 1 ] && [ "$(ls -A server/ShooterGame/Saved/SavedArks)" ]; then
+	if [ "${BACKUPONSTOP}"= true ] && [ "$(ls -A server/ShooterGame/Saved/SavedArks)" ]; then
 		echo "[Backup on stop]"
 		arkmanager backup
 	fi
-	if [ ${WARNONSTOP} -eq 1 ];then 
+	if [ "${WARNONSTOP}" = true ];then 
             arkmanager broadcast "Server is shutting down"
             arkmanager notify "Server is shutting down"
 	    arkmanager stop --warn
@@ -150,12 +150,18 @@ trap stop TERM
 # to allow server logs to be scraped from RCON to stdout
 # bash -c ./log.sh &
 
-if [ $UPDATEONSTART -eq 0 ]; then
-	arkmanager start -noautoupdate --no-background --verbose &
+if [ "${am_arkAutoUpdateOnStart}" = true ]; then
+	if ["{$am_arkBackupPreUpdate}" = true ]; then
+		arkmanager start --no-background --verbose --backup &
+		arkmanpid=$!
+		wait $arkmanpid
+	else
+		arkmanager start --no-background --verbose &
         arkmanpid=$!
         wait $arkmanpid
+	fi
 else
-        arkmanager start --no-background --verbose &
-        arkmanpid=$!
-        wait $arkmanpid
+	arkmanager start -noautoupdate --no-background --verbose &
+	arkmanpid=$!
+	wait $arkmanpid
 fi

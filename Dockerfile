@@ -36,12 +36,24 @@ RUN steamcmd +quit
 
 ENV am_ark_SessionName="Ark Server" \
     am_serverMap="TheIsland" \
+	am_ark_ServerPassword="" \
     am_ark_ServerAdminPassword="k3yb04rdc4t" \
+	am_ark_AltSaveDirectoryName="" \
     am_ark_MaxPlayers=70 \
     am_ark_QueryPort=27015 \
     am_ark_Port=7778 \
     am_ark_RCONPort=32330 \
     am_arkwarnminutes=15 \
+	am_arkAutoUpdateOnStart=false \
+	am_arkBackupPreUpdate=false \
+	am_MaxBackupSizeMB=500 \
+	am_arkflag_NoBattlEye=false \
+	am_arkflag_crossplay=false \
+	am_discordWebhookURL="" \
+	TZ="America/New_York" \
+	BACKUPONSTOP=false \
+	WARNONSTOP=false \
+	VALIDATE_SAVE_EXISTS=false \
     UID=1000 \
     GID=1000
 
