@@ -11,9 +11,9 @@ echo "# Ark Server - " `date`
 echo "###########################################################################"
 
 # Change the UID if needed
-[ ! "$(id -u steam)" -eq "$UID" ] && echo "Changing steam uid to $UID." && sudo usermod -o -u "$UID" steam ;
+[ ! "$(id -u steam)" -eq "${UID}" ] && echo "Changing steam uid to ${UID}." && sudo usermod -o -u "${UID}" steam ;
 # Change gid if needed
-[ ! "$(id -g steam)" -eq "$GID" ] && echo "Changing steam gid to $GID." && sudo groupmod -o -g "$GID" steam ;
+[ ! "$(id -g steam)" -eq "${GID}" ] && echo "Changing steam gid to ${GID}." && sudo groupmod -o -g "${GID}" steam ;
 
 # Put steam owner of directories (if the uid changed, then it's needed)
 echo "Ensuring correct permissions..."
@@ -40,14 +40,21 @@ echo "Cleaning up any leftover arkmanager files..."
 [ ! -d /ark/backup ] && mkdir /ark/backup
 [ ! -d /ark/staging ] && mkdir /ark/staging
 
-echo "Creating arkmanager.cfg from environment variables..."
-echo -e "# Ark Server Tools - arkmanager config\n# Generated from container environment variables\n\n" > /ark/config/arkmanager.cfg
-if [ -f /ark/config/arkmanager_base.cfg ]; then
-	cat /ark/config/arkmanager_base.cfg >> /ark/config/arkmanager.cfg
-fi
+#sudo chown -R steam:steam /ark /home/steam /etc/arkmanager /arkserver
 
-echo -e "\n\narkserverroot=\"/ark/server\"\n" >> /ark/config/arkmanager.cfg
-printenv | sed -n -r 's/am_(.*)=(.*)/\1=\"\2\"/ip' >> /ark/config/arkmanager.cfg
+# copy from template to server volume
+#cp -a "/etc/arkmanager/arkmanager.cfg" "/ark/config/arkmanager.cfg"
+envsubst < "/etc/arkmanager/arkmanager.cfg" >> "/ark/config/arkmanager.cfg"
+
+#echo "Creating arkmanager.cfg from environment variables..."
+#echo -e "# Ark Server Tools - arkmanager config\n# Generated from container environment variables\n\n" > /ark/config/arkmanager.cfg
+#if [ -f /ark/config/arkmanager_base.cfg ]; then
+#	cat /ark/config/arkmanager_base.cfg >> /ark/config/arkmanager.cfg
+#fi
+
+#modifies the arkmanager.cfg file and replaces the values of any record that we have an associated am_ env variable for
+#echo -e "\n\narkserverroot=\"/ark/server\"\n" >> /ark/config/arkmanager.cfg
+#printenv | sed -n -r 's/am_(.*)=(.*)/\1=\"\2\"/ip' >> /ark/config/arkmanager.cfg
 
 if [ ! -d /ark/server ] || [ ! -f /ark/server/ShooterGame/Binaries/Linux/ShooterGameServer ]; then
 	echo "No game files found. Installing..."
@@ -55,12 +62,12 @@ if [ ! -d /ark/server ] || [ ! -f /ark/server/ShooterGame/Binaries/Linux/Shooter
 	mkdir -p /ark/server/ShooterGame/Saved/Config/LinuxServer
 	mkdir -p /ark/server/ShooterGame/Content/Mods
 	mkdir -p /ark/server/ShooterGame/Binaries/Linux/
-	arkmanager install --no-background --verbose
+	arkmanager install --verbose --no-background
 fi
 
 if [ ! -f /ark/config/crontab ]; then
 	echo "Creating crontab..."
-	cat << EOF >> /ark/config/crontab
+	cat <<EOF >> /ark/config/crontab
 # Example of job definition:
 # .---------------- minute (0 - 59)
 # |  .------------- hour (0 - 23)
@@ -72,10 +79,10 @@ if [ ! -f /ark/config/crontab ]; then
 # Examples for Ark:
 # 0 * * * * arkmanager update				# update every hour
 # */15 * * * * arkmanager backup			# backup every 15min
-# 0 0 * * * arkmanager backup				# backup every day at midnight
-*/30 * * * * arkmanager update --update-mods --warn --saveworld
-10 */8 * * * arkmanager saveworld && arkmanager backup
-15 10 * * * arkmanager restart --warn --saveworld
+0 */4 * * * arkmanager backup				# backup every 4 hours
+0 2 * * * arkmanager update --warn --saveworld # update at 2AM
+# 10 */8 * * * arkmanager saveworld && arkmanager backup
+# 15 10 * * * arkmanager restart --warn --saveworld
 EOF
 fi
 
@@ -100,19 +107,19 @@ fi
 
 if [[ "${VALIDATE_SAVE_EXISTS}" = true && ! -z "${am_ark_AltSaveDirectoryName}" && ! -z "${am_serverMap}" ]]; then
 	savepath="/ark/server/ShooterGame/Saved/$am_ark_AltSaveDirectoryName"
-	savefile="$am_serverMap.ark"
-	echo "Validating that a save file exists for $am_serverMap"
+	savefile="${am_serverMap}.ark"
+	echo "Validating that a save file exists for ${am_serverMap}"
 	echo "Checking $savepath"
-	if [[ ! -f "$savepath/$savefile" ]]; then
-		echo "$savefile not found!"
+	if [[ ! -f "${savepath}/${savefile}" ]]; then
+		echo "${savefile} not found!"
 		echo "Attempting to notify via Discord..."
-		arkmanager notify "Critical error: unable to find $savefile in $savepath!"
+		arkmanager notify "Critical error: unable to find ${savefile} in ${savepath}!"
 
 		# wait on failure so we don't spam docker logs
 		sleep 5m
 		exit 1
 	else
-		echo "$savefile found."
+		echo "${savefile} found."
 	fi
 else
 	echo "Save file validation is not enabled."
@@ -130,13 +137,14 @@ function stop {
 		echo "[Backup on stop]"
 		arkmanager backup
 	fi
+	
 	if [ "${WARNONSTOP}" = true ];then 
-            arkmanager broadcast "Server is shutting down"
-            arkmanager notify "Server is shutting down"
+		arkmanager broadcast "Server is shutting down"
+        arkmanager notify "Server is shutting down"
 	    arkmanager stop --warn
 	else
-            arkmanager broadcast "Server is shutting down"
-            arkmanager notify "Server is shutting down"
+		arkmanager broadcast "Server is shutting down"
+		arkmanager notify "Server is shutting down"
 	    arkmanager stop
 	fi
 	exit 0
@@ -152,16 +160,18 @@ trap stop TERM
 
 if [ "${am_arkAutoUpdateOnStart}" = true ]; then
 	if ["{$am_arkBackupPreUpdate}" = true ]; then
-		arkmanager start --no-background --verbose --backup &
-		arkmanpid=$!
-		wait $arkmanpid
+		arkmanager start --verbose --no-background --backup &
+		arkmanpid1="$!"
+		wait $arkmanpid1
 	else
 		arkmanager start --no-background --verbose &
-        arkmanpid=$!
-        wait $arkmanpid
+		arkmanpid2="$!"
+        wait $arkmanpid2
 	fi
 else
 	arkmanager start --noautoupdate --no-background --verbose &
-	arkmanpid=$!
-	wait $arkmanpid
+	arkmanpid3="$!"
+	
+	wait $arkmanpid3
 fi
+

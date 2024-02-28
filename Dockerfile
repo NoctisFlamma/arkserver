@@ -1,13 +1,14 @@
-FROM ubuntu:xenial
+FROM ubuntu:focal
 
 USER root
 
-RUN dpkg --add-architecture i386 && \
-    apt-get update && \
-    apt-get install -y curl cron bzip2 perl-modules lsof libc6-i386 lib32gcc1 sudo tzdata && \
+RUN set -x && \
+    dpkg --add-architecture i386 && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y curl cron bzip2 perl-modules lsof libc6-i386 lib32gcc1 sudo tzdata && \
     echo steam steam/question select "I AGREE" | debconf-set-selections && \
     echo steam steam/license note '' | debconf-set-selections && \
-    apt-get install -y ca-certificates steamcmd language-pack-en
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates steamcmd language-pack-en gettext
 
 RUN ln -s /usr/games/steamcmd /usr/local/bin && \
     adduser --gecos "" --disabled-password steam
@@ -38,17 +39,17 @@ ENV am_ark_SessionName="Ark Server" \
     am_serverMap="TheIsland" \
 	am_ark_ServerPassword="" \
     am_ark_ServerAdminPassword="k3yb04rdc4t" \
-	am_ark_AltSaveDirectoryName="" \
     am_ark_MaxPlayers=70 \
-    am_ark_QueryPort=27015 \
-    am_ark_Port=7778 \
+    SteamPort=27015 \
+	am_ark_QueryPort=27016 \
+    ark_port=7777 \
+	am_ark_Port=7778 \
     am_ark_RCONPort=32330 \
+	am_ark_RCONPortEnabled="True" \
     am_arkwarnminutes=15 \
 	am_arkAutoUpdateOnStart=false \
 	am_arkBackupPreUpdate=false \
 	am_MaxBackupSizeMB=500 \
-	am_arkflag_NoBattlEye=false \
-	am_arkflag_crossplay=false \
 	am_discordWebhookURL="" \
 	TZ="America/New_York" \
 	BACKUPONSTOP=false \
@@ -56,7 +57,11 @@ ENV am_ark_SessionName="Ark Server" \
 	VALIDATE_SAVE_EXISTS=false \
     UID=1000 \
     GID=1000
+	
+
+EXPOSE ${am_ark_QueryPort}/udp ${am_ark_QueryPort} ${am_ark_Port}/udp ${am_ark_Port} ${am_ark_RCONPort} ${am_ark_RCONPort}/udp ${SteamPort}/udp ${SteamPort} ${ark_port} ${ark_port}/udp
 
 VOLUME /ark
+ENTRYPOINT [  "/arkserver/arkserver.sh" ]
 
-CMD [ "/arkserver/arkserver.sh" ]
+CMD []
