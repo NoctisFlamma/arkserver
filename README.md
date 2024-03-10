@@ -54,7 +54,7 @@ volumes:
   steam:
 services:
   ark:
-    image: jkread/arkserver:latest
+    image: noctisflamma/arkserver:latest
     container_name: ark
     network_mode: bridge
     restart: always
