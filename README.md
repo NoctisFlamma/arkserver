@@ -44,7 +44,7 @@ $ docker run -d \
     -p 27015:27015 -p 27015:27015/udp \  # steam query port
     -p 7778:7778 -p 7778:7778/udp \  # gameserver port
     -p 7777:7777 -p 7777:7777/udp \ # gameserver port
-    jkread/arkserver
+    noctisflamma/arkserver
 ```
 Docker compose sample (change or remove environment variables as the suit you):
 ```yaml
