@@ -31,7 +31,7 @@ For more information on `arkmanager`, see the repo here: https://github.com/FezV
 
 Pull the latest (or any other desired version):
 ```bash
-docker pull jkread/arkserver:latest
+docker pull noctisflamma/arkserver:latest
 ```
 
 ### Running the server
